@@ -128,6 +128,11 @@
     box-shadow: 0 4px 15px rgba(255, 0, 100, 0.3);
   }
 
+  .nav-item.active:hover:not(:disabled) {
+    background: linear-gradient(135deg, #c80050, #a60040);
+    box-shadow: 0 4px 15px rgba(255, 0, 100, 0.3);
+  }
+
   .nav-item:disabled {
     opacity: 0.5;
     cursor: not-allowed;
