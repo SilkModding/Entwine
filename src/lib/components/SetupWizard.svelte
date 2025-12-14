@@ -104,10 +104,6 @@
     text-align: center;
   }
 
-  .setup-icon {
-    display: none;
-  }
-
   .setup-title {
     font-size: 3.5rem;
     font-weight: 800;

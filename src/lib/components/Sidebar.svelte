@@ -84,10 +84,6 @@
     margin-bottom: 1rem;
   }
 
-  .logo img {
-    display: none;
-  }
-
   .logo span {
     font-size: 1.8rem;
     font-weight: 800;
