@@ -1,0 +1,85 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build bundles
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web assets
+        run: pnpm build
+
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          components: rustfmt
+
+      - name: Build Tauri app
+        run: pnpm tauri build
+        env:
+          CI: true
+
+      - name: Upload bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.os }}
+          path: src-tauri/target/release/bundle/**
+
+  release:
+    name: Create release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Linux bundle
+        if: always()
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-ubuntu-latest
+          path: bundles
+
+      - name: Download Windows bundle
+        if: always()
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-windows-latest
+          path: bundles
+
+      - name: Create GitHub Release and upload bundles
+        uses: softprops/action-gh-release@v1
+        with:
+          files: bundles/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
