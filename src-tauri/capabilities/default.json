@@ -1,0 +1,48 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "dialog:default",
+    "dialog:allow-open",
+    "http:default",
+    "http:allow-fetch",
+    "http:allow-fetch-cancel",
+    "http:allow-fetch-read-body",
+    "http:allow-fetch-send",
+    "fs:default",
+    "fs:allow-read",
+    "fs:allow-write",
+    "fs:allow-exists",
+    "fs:allow-mkdir",
+    "fs:allow-remove",
+    "fs:allow-rename",
+    "fs:allow-copy-file",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://silk.abstractmelon.net/**" },
+        { "url": "https://github.com/**" },
+        { "url": "https://objects.githubusercontent.com/**" }
+      ]
+    },
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        "$HOME/.steam/**",
+        "$HOME/.local/share/Steam/**",
+        "$HOME/.var/app/com.valvesoftware.Steam/**",
+        "/run/media/**",
+        "/media/**",
+        "C:\\Program Files (x86)\\Steam\\**",
+        "C:\\Program Files\\Steam\\**",
+        "D:\\**",
+        "E:\\**",
+        "F:\\**"
+      ]
+    }
+  ]
+}
