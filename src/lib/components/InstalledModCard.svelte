@@ -16,7 +16,7 @@
 
 <div class="installed-mod-card" class:disabled={!mod.enabled}>
   <div class="mod-icon">
-    <img src={iconUrl} alt={mod.name} onerror={(e) => (e.currentTarget.src = '/default-mod.png')} />
+    <img src={iconUrl} alt={mod.name} onerror={(e) => ((e.currentTarget as HTMLImageElement).src = '/default-mod.png')} />
   </div>
 
   <div class="mod-info">
