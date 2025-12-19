@@ -8,7 +8,6 @@ mod config;
 mod version;
 mod bepinex;
 
-const SILK_DOWNLOAD_URL: &str = "https://github.com/SilkModding/Silk/releases/download/v0.6.1/Silk-v0.6.1.zip";
 const MODS_API_URL: &str = "https://silk.abstractmelon.net/api/mods";
 const MODS_BASE_URL: &str = "https://silk.abstractmelon.net";
 
@@ -193,81 +192,23 @@ async fn fetch_mods() -> Result<Vec<Mod>, String> {
 #[tauri::command]
 async fn install_silk(game_path: String, window: tauri::Window) -> Result<(), String> {
     let game_dir = PathBuf::from(&game_path);
-    
+
     if !game_dir.exists() {
         return Err("Game path does not exist".to_string());
     }
-    
-    let _ = window.emit("install-progress", "Downloading Silk...");
-    
-    // Download Silk
-    let client = reqwest::Client::new();
-    let response = client
-        .get(SILK_DOWNLOAD_URL)
-        .send()
-        .await
-        .map_err(|e| format!("Failed to download Silk: {}", e))?;
-    
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| format!("Failed to read Silk download: {}", e))?;
-    
-    let _ = window.emit("install-progress", "Extracting Silk...");
-    
-    // Create a temp file for the zip
-    let temp_dir = std::env::temp_dir();
-    let zip_path = temp_dir.join("silk_download.zip");
-    
-    fs::write(&zip_path, &bytes)
-        .map_err(|e| format!("Failed to write temp file: {}", e))?;
-    
-    // Extract the zip directly to game directory
-    let file = fs::File::open(&zip_path)
-        .map_err(|e| format!("Failed to open zip file: {}", e))?;
-    
-    let mut archive = zip::ZipArchive::new(file)
-        .map_err(|e| format!("Failed to read zip archive: {}", e))?;
-    
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)
-            .map_err(|e| format!("Failed to read zip entry: {}", e))?;
-        
-        let outpath = game_dir.join(file.mangled_name());
-        
-        if file.name().ends_with('/') {
-            fs::create_dir_all(&outpath)
-                .map_err(|e| format!("Failed to create directory: {}", e))?;
-        } else {
-            if let Some(parent) = outpath.parent() {
-                fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create parent directory: {}", e))?;
-            }
-            
-            let mut outfile = fs::File::create(&outpath)
-                .map_err(|e| format!("Failed to create file: {}", e))?;
-            
-            io::copy(&mut file, &mut outfile)
-                .map_err(|e| format!("Failed to write file: {}", e))?;
+
+    // Try to determine the latest Silk version and delegate to the download helper
+    let latest = match version::get_latest_silk_version().await {
+        Ok(v) => v,
+        Err(_) => {
+            // Fallback: attempt to read the raw version file or fall back to 0.6.1
+            let _ = window.emit("install-progress", "Failed to fetch latest Silk version; falling back to v0.6.1");
+            "0.6.1".to_string()
         }
-    }
-    
-    // Clean up temp file
-    let _ = fs::remove_file(&zip_path);
-    
-    // Create Mods directory if it doesn't exist
-    let mods_dir = game_dir.join("Silk/Mods");
-    fs::create_dir_all(&mods_dir)
-        .map_err(|e| format!("Failed to create Mods directory: {}", e))?;
-    
-    // Write version file
-    let version_file = game_dir.join("Silk/version.txt");
-    fs::write(&version_file, "0.6.1")
-        .map_err(|e| format!("Failed to write version file: {}", e))?;
-    
-    let _ = window.emit("install-progress", "Silk installed successfully!");
-    
-    Ok(())
+    };
+
+    // Delegate to existing helper which downloads & extracts the specified version and writes version.txt
+    version::download_silk_version(&latest, &game_path, window).await
 }
 
 #[tauri::command]
