@@ -83,7 +83,7 @@ pub fn is_newer_version(version_a: &str, version_b: &str) -> bool {
 /// List available Silk versions (for version swapping)
 pub async fn list_available_versions() -> Result<Vec<String>, String> {
     // For now, we'll return a hardcoded list of known stable versions
-    // In a full implementation, this could scrape GitHub releases
+    // In the future, this could scrape GitHub releases
     Ok(vec![
         "0.6.1".to_string(),
         "0.6.0".to_string(),
