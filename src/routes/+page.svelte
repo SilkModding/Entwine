@@ -8,6 +8,7 @@
     setGamePath,
     fetchMods,
     installSilk,
+    uninstallSilk,
     getInstalledMods,
     installMod,
     toggleMod,
@@ -130,6 +131,29 @@
       }
     } catch (e) {
       error = e instanceof Error ? e.message : 'Failed to install Silk';
+    } finally {
+      installingSilk = false;
+      installProgress = null;
+    }
+  }
+
+  async function handleUninstallSilk() {
+    if (!status?.gamePath) return;
+    if (!confirm('Are you sure you want to uninstall Silk? This will remove the Silk folder and injected files.')) return;
+
+    installingSilk = true;
+    error = null;
+
+    try {
+      await uninstallSilk(status.gamePath);
+      status = await getAppStatus();
+
+      if (!status.silkInstalled) {
+        installedMods = [];
+        activeTab = 'settings';
+      }
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Failed to uninstall Silk';
     } finally {
       installingSilk = false;
       installProgress = null;
@@ -328,6 +352,22 @@
                 <p class="setting-value">{status?.modsPath ?? 'Not available'}</p>
               </div>
             </div>
+
+            {#if status?.silkInstalled}
+              <div class="setting-item">
+                <div class="setting-info">
+                  <h3>Silk Installation</h3>
+                  <p class="setting-value">Installed</p>
+                </div>
+                <button class="btn btn-secondary" onclick={handleUninstallSilk} disabled={installingSilk}>
+                  {#if installingSilk}
+                    Uninstalling...
+                  {:else}
+                    Uninstall Silk
+                  {/if}
+                </button>
+              </div>
+            {/if}
           </div>
 
           <div class="settings-section">

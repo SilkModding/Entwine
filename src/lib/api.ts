@@ -19,6 +19,10 @@ export async function installSilk(gamePath: string): Promise<void> {
   return invoke('install_silk', { gamePath });
 }
 
+export async function uninstallSilk(gamePath: string): Promise<void> {
+  return invoke('uninstall_silk', { gamePath });
+}
+
 export async function getInstalledMods(modsPath: string): Promise<InstalledMod[]> {
   return invoke('get_installed_mods', { modsPath });
 }

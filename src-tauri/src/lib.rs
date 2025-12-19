@@ -512,6 +512,41 @@ async fn uninstall_mod(mods_path: String, file_name: String) -> Result<(), Strin
     Ok(())
 }
 
+#[tauri::command]
+async fn uninstall_silk(game_path: String, window: tauri::Window) -> Result<(), String> {
+    let game_dir = PathBuf::from(&game_path);
+
+    if !game_dir.exists() {
+        return Err("Game path does not exist".to_string());
+    }
+
+    let mut found = false;
+
+    // Remove injected DLL if present
+    let winhttp = game_dir.join("winhttp.dll");
+    if winhttp.exists() {
+        fs::remove_file(&winhttp)
+            .map_err(|e| format!("Failed to remove winhttp.dll: {}", e))?;
+        found = true;
+    }
+
+    // Remove Silk directory and everything under it
+    let silk_dir = game_dir.join("Silk");
+    if silk_dir.exists() {
+        fs::remove_dir_all(&silk_dir)
+            .map_err(|e| format!("Failed to remove Silk directory: {}", e))?;
+        found = true;
+    }
+
+    if !found {
+        return Err("Silk not found at this path".to_string());
+    }
+
+    let _ = window.emit("install-progress", "Silk uninstalled successfully!");
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -524,6 +559,7 @@ pub fn run() {
             set_game_path,
             fetch_mods,
             install_silk,
+            uninstall_silk,
             get_installed_mods,
             install_mod,
             toggle_mod,
