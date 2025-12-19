@@ -20,17 +20,21 @@
   let installProgress = '';
   let selectedVersion = '';
 
-  onMount(async () => {
-    try {
-      currentVersion = await getSilkVersion(gamePath);
-      const updateCheck = await checkForSilkUpdates(gamePath);
-      latestVersion = updateCheck;
-      availableVersions = await listAvailableSilkVersions();
-    } catch (e) {
-      error = e instanceof Error ? e.message : String(e);
-    } finally {
-      loading = false;
-    }
+  onMount(() => {
+    let unlisten: (() => Promise<void>) | undefined;
+
+    (async () => {
+      try {
+        currentVersion = await getSilkVersion(gamePath);
+        const updateCheck = await checkForSilkUpdates(gamePath);
+        latestVersion = updateCheck;
+        availableVersions = await listAvailableSilkVersions();
+      } catch (e) {
+        error = e instanceof Error ? e.message : String(e);
+      } finally {
+        loading = false;
+      }
+    })();
 
     // Listen for install progress
     const unlisten = await listen('install-progress', (event) => {
@@ -112,7 +116,7 @@
             <span class="label">Latest Version:</span>
             <span class="value">{latestVersion.version}</span>
           </div>
-          <button class="btn btn-primary" on:click={handleUpdate} disabled={installing}>
+          <button class="btn btn-primary" onclick={handleUpdate} disabled={installing}>
             {installing ? 'Updating...' : 'Update Now'}
           </button>
         </div>
@@ -144,7 +148,7 @@
         </select>
         <button
           class="btn btn-secondary"
-          on:click={handleVersionSwitch}
+          onclick={handleVersionSwitch}
           disabled={!selectedVersion || installing}
         >
           Install

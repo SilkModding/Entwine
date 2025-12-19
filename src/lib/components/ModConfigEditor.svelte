@@ -60,11 +60,11 @@
   }
 </script>
 
-<div class="modal-backdrop" on:click={onClose}>
-  <div class="modal" on:click|stopPropagation>
+<div class="modal-backdrop" onclick={onClose}>
+  <div class="modal" onclick={(e) => e.stopPropagation()}>
     <div class="modal-header">
       <h2>Config: {mod.name}</h2>
-      <button class="close-btn" on:click={onClose}>×</button>
+      <button class="close-btn" onclick={onClose}>x</button>
     </div>
 
     <div class="modal-body">
@@ -79,55 +79,62 @@
         </div>
       {:else}
         <div class="config-editor">
-          {#each Object.entries(config) as [key, value]}
-            <div class="config-item">
-              <label for={key}>{key}</label>
-              {#if typeof value === 'boolean'}
-                <input
-                  type="checkbox"
-                  id={key}
-                  checked={value}
-                  on:change={(e) => updateConfigValue(key, e.currentTarget.checked)}
-                />
-              {:else if typeof value === 'number'}
-                <input
-                  type="number"
-                  id={key}
-                  value={value}
-                  on:input={(e) => updateConfigValue(key, parseFloat(e.currentTarget.value))}
-                />
-              {:else if typeof value === 'string'}
-                <input
-                  type="text"
-                  id={key}
-                  value={value}
-                  on:input={(e) => updateConfigValue(key, e.currentTarget.value)}
-                />
-              {:else}
-                <textarea
-                  id={key}
-                  rows="4"
-                  value={renderConfigValue(key, value)}
-                  on:input={(e) => {
-                    try {
-                      updateConfigValue(key, JSON.parse(e.currentTarget.value));
-                    } catch {
-                      // Invalid JSON, ignore
+            {#each Object.entries(config) as [key, value]}
+                <div class="config-item">
+                <label for={key}>{key}</label>
+
+                {#if typeof value === 'boolean'}
+                    <input
+                    type="checkbox"
+                    id={key}
+                    checked={value}
+                    onchange={(e) => updateConfigValue(key, e.currentTarget.checked)}
+                    />
+
+                {:else if typeof value === 'number'}
+                    <input
+                    type="number"
+                    id={key}
+                    value={value}
+                    oninput={(e) =>
+                        updateConfigValue(key, parseFloat(e.currentTarget.value))
                     }
-                  }}
-                />
-              {/if}
-            </div>
-          {/each}
+                    />
+
+                {:else if typeof value === 'string'}
+                    <input
+                    type="text"
+                    id={key}
+                    value={value}
+                    oninput={(e) =>
+                        updateConfigValue(key, e.currentTarget.value)
+                    }
+                    />
+
+                {:else}
+                    <textarea
+                    id={key}
+                    rows="4"
+                    value={renderConfigValue(key, value)}
+                    oninput={(e) => {
+                        try {
+                        updateConfigValue(key, JSON.parse(e.currentTarget.value));
+                        } catch {
+                        }
+                    }}
+                    />
+                {/if}
+                </div>
+            {/each}
         </div>
       {/if}
     </div>
 
     <div class="modal-footer">
-      <button class="btn btn-secondary danger" on:click={handleDelete}>Delete Config</button>
+      <button class="btn btn-secondary danger" onclick={handleDelete}>Delete Config</button>
       <div class="button-group">
-        <button class="btn" on:click={onClose}>Cancel</button>
-        <button class="btn btn-primary" on:click={handleSave} disabled={saving || loading}>
+        <button class="btn" onclick={onClose}>Cancel</button>
+        <button class="btn btn-primary" onclick={handleSave} disabled={saving || loading}>
           {saving ? 'Saving...' : 'Save'}
         </button>
       </div>
