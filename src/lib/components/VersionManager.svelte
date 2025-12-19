@@ -20,10 +20,7 @@
   let installProgress = '';
   let selectedVersion = '';
 
-  onMount(() => {
-    let unlisten: (() => Promise<void>) | undefined;
-
-    (async () => {
+  onMount(async () => {
       try {
         currentVersion = await getSilkVersion(gamePath);
         const updateCheck = await checkForSilkUpdates(gamePath);
@@ -34,7 +31,6 @@
       } finally {
         loading = false;
       }
-    })();
 
     // Listen for install progress
     const unlisten = await listen('install-progress', (event) => {
