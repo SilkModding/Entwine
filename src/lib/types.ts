@@ -31,3 +31,37 @@ export interface AppStatus {
 }
 
 export type Tab = 'browse' | 'installed' | 'settings';
+
+// Config types
+export type ConfigValue =
+  | string
+  | number
+  | boolean
+  | ConfigValue[]
+  | { [key: string]: ConfigValue };
+
+export interface ModConfig {
+  [key: string]: ConfigValue;
+}
+
+// Version types
+export interface SilkVersion {
+  version: string;
+  downloadUrl: string;
+}
+
+export interface ModVersionInfo {
+  modId: string;
+  version: string;
+  silkVersion: string;
+  minSilkVersion?: string;
+  maxSilkVersion?: string;
+}
+
+// Settings types
+export interface Settings {
+  autoUpdate: boolean;
+  checkModCompatibility: boolean;
+  bepinexInstalled: boolean;
+}
+

@@ -18,6 +18,9 @@
   import ModCard from '$lib/components/ModCard.svelte';
   import InstalledModCard from '$lib/components/InstalledModCard.svelte';
   import SetupWizard from '$lib/components/SetupWizard.svelte';
+  import ModConfigEditor from '$lib/components/ModConfigEditor.svelte';
+  import VersionManager from '$lib/components/VersionManager.svelte';
+  import BepInExSettings from '$lib/components/BepInExSettings.svelte';
 
   let status = $state<AppStatus | null>(null);
   let mods = $state<Mod[]>([]);
@@ -30,6 +33,7 @@
   let installingSilk = $state(false);
   let installingModId = $state<string | null>(null);
   let togglingModId = $state<string | null>(null);
+  let configEditingMod = $state<InstalledMod | null>(null);
 
   const filteredMods = $derived(
     mods.filter(mod =>
@@ -205,6 +209,16 @@
     }
   }
 
+  function handleOpenModConfig(mod: InstalledMod) {
+    configEditingMod = mod;
+  }
+
+  function handleCloseModConfig() {
+    configEditingMod = null;
+    // Refresh installed mods in case config changes affect anything
+    loadInstalledMods();
+  }
+
   function handleTabChange(tab: Tab) {
     activeTab = tab;
     error = null;
@@ -328,6 +342,7 @@
                   {mod}
                   onToggle={(enable) => handleToggleMod(mod, enable)}
                   onUninstall={() => handleUninstallMod(mod)}
+                  onConfig={() => handleOpenModConfig(mod)}
                   toggling={togglingModId === mod.id}
                 />
               {/each}
@@ -370,6 +385,11 @@
             {/if}
           </div>
 
+          {#if status?.gamePath && status?.silkInstalled}
+            <VersionManager gamePath={status.gamePath} />
+            <BepInExSettings gamePath={status.gamePath} />
+          {/if}
+
           <div class="settings-section">
             <h2>About</h2>
             <div class="about-content">
@@ -391,6 +411,14 @@
       </div>
     {/if}
   </div>
+
+  {#if configEditingMod && status?.gamePath}
+    <ModConfigEditor
+      mod={configEditingMod}
+      gamePath={status.gamePath}
+      onClose={handleCloseModConfig}
+    />
+  {/if}
 </main>
 
 <style>

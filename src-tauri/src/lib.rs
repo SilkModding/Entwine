@@ -4,6 +4,10 @@ use std::io;
 use std::path::PathBuf;
 use tauri::Emitter;
 
+mod config;
+mod version;
+mod bepinex;
+
 const SILK_DOWNLOAD_URL: &str = "https://github.com/SilkModding/Silk/releases/download/v0.6.1/Silk-v0.6.1.zip";
 const MODS_API_URL: &str = "https://silk.abstractmelon.net/api/mods";
 const MODS_BASE_URL: &str = "https://silk.abstractmelon.net";
@@ -255,6 +259,11 @@ async fn install_silk(game_path: String, window: tauri::Window) -> Result<(), St
     let mods_dir = game_dir.join("Silk/Mods");
     fs::create_dir_all(&mods_dir)
         .map_err(|e| format!("Failed to create Mods directory: {}", e))?;
+    
+    // Write version file
+    let version_file = game_dir.join("Silk/version.txt");
+    fs::write(&version_file, "0.6.1")
+        .map_err(|e| format!("Failed to write version file: {}", e))?;
     
     let _ = window.emit("install-progress", "Silk installed successfully!");
     
@@ -547,6 +556,108 @@ async fn uninstall_silk(game_path: String, window: tauri::Window) -> Result<(), 
     Ok(())
 }
 
+// Config Management Commands
+
+#[tauri::command]
+async fn get_mod_config(game_path: String, mod_id: String) -> Result<std::collections::HashMap<String, config::ConfigValue>, String> {
+    config::load_mod_config(&game_path, &mod_id)
+}
+
+#[tauri::command]
+async fn save_mod_config(
+    game_path: String,
+    mod_id: String,
+    config_data: std::collections::HashMap<String, config::ConfigValue>,
+) -> Result<(), String> {
+    config::save_mod_config(&game_path, &mod_id, &config_data)
+}
+
+#[tauri::command]
+async fn set_mod_config_value(
+    game_path: String,
+    mod_id: String,
+    key: String,
+    value: config::ConfigValue,
+) -> Result<(), String> {
+    let mut config_data = config::load_mod_config(&game_path, &mod_id)?;
+    config::set_config_value(&mut config_data, &key, value);
+    config::save_mod_config(&game_path, &mod_id, &config_data)
+}
+
+#[tauri::command]
+async fn list_mod_configs(game_path: String) -> Result<Vec<String>, String> {
+    config::list_mod_configs(&game_path)
+}
+
+#[tauri::command]
+async fn delete_mod_config(game_path: String, mod_id: String) -> Result<(), String> {
+    config::delete_mod_config(&game_path, &mod_id)
+}
+
+// Version Management Commands
+
+#[tauri::command]
+async fn get_silk_version(game_path: String) -> Result<String, String> {
+    version::get_installed_silk_version(&game_path)
+}
+
+#[tauri::command]
+async fn get_latest_silk_version() -> Result<String, String> {
+    version::get_latest_silk_version().await
+}
+
+#[tauri::command]
+async fn check_for_silk_updates(game_path: String) -> Result<Option<version::SilkVersion>, String> {
+    version::check_for_updates(&game_path).await
+}
+
+#[tauri::command]
+async fn list_available_silk_versions() -> Result<Vec<String>, String> {
+    version::list_available_versions().await
+}
+
+#[tauri::command]
+async fn install_silk_version(
+    version: String,
+    game_path: String,
+    window: tauri::Window,
+) -> Result<(), String> {
+    version::download_silk_version(&version, &game_path, window).await
+}
+
+#[tauri::command]
+async fn check_mod_compatibility(
+    game_path: String,
+    mods_path: String,
+    mod_id: String,
+) -> Result<bool, String> {
+    let installed_silk_version = version::get_installed_silk_version(&game_path)?;
+    let mod_version_info = version::get_mod_version_info(&mod_id, &mods_path)?;
+    version::check_mod_compatibility(&installed_silk_version, &mod_version_info)
+}
+
+// BepInEx Commands
+
+#[tauri::command]
+async fn is_bepinex_installed(game_path: String) -> Result<bool, String> {
+    Ok(bepinex::is_bepinex_installed(&game_path))
+}
+
+#[tauri::command]
+async fn get_bepinex_version(game_path: String) -> Result<String, String> {
+    bepinex::get_bepinex_version(&game_path)
+}
+
+#[tauri::command]
+async fn install_bepinex(game_path: String, window: tauri::Window) -> Result<(), String> {
+    bepinex::install_bepinex(&game_path, window).await
+}
+
+#[tauri::command]
+async fn uninstall_bepinex(game_path: String, window: tauri::Window) -> Result<(), String> {
+    bepinex::uninstall_bepinex(&game_path, window).await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -564,6 +675,24 @@ pub fn run() {
             install_mod,
             toggle_mod,
             uninstall_mod,
+            // Config management
+            get_mod_config,
+            save_mod_config,
+            set_mod_config_value,
+            list_mod_configs,
+            delete_mod_config,
+            // Version management
+            get_silk_version,
+            get_latest_silk_version,
+            check_for_silk_updates,
+            list_available_silk_versions,
+            install_silk_version,
+            check_mod_compatibility,
+            // BepInEx
+            is_bepinex_installed,
+            get_bepinex_version,
+            install_bepinex,
+            uninstall_bepinex,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
