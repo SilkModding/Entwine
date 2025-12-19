@@ -1,9 +1,9 @@
 [package]
 name = "entwine"
-version = "0.1.0"
+version = "0.2.0"
 description = "Silk Mod Manager for SpiderHeck"
-authors = ["you"]
-edition = "2021"
+authors = ["abstractmelon"]
+edition = "2025"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
