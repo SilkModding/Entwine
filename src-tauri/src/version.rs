@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use tauri::Emitter;
 
 const SILK_VERSION_URL: &str = "https://raw.githubusercontent.com/SilkModding/Silk/master/version";
+const GITHUB_RELEASES_API: &str = "https://api.github.com/repos/SilkModding/Silk/releases";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -39,19 +40,41 @@ pub fn get_installed_silk_version(game_path: &str) -> Result<String, String> {
 
 /// Get the latest Silk version from GitHub
 pub async fn get_latest_silk_version() -> Result<String, String> {
+    // Prefer GitHub releases latest endpoint to get the most accurate release tag
     let client = reqwest::Client::new();
-    
+
+    let resp = client
+        .get(format!("{}/latest", GITHUB_RELEASES_API))
+        .header("User-Agent", "entwine-app")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch latest release from GitHub: {}", e))?;
+
+    if resp.status().is_success() {
+        let json: serde_json::Value = resp
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse GitHub latest release JSON: {}", e))?;
+
+        if let Some(tag) = json.get("tag_name").and_then(|t| t.as_str()) {
+            // Strip leading 'v' if present
+            let v = tag.trim_start_matches('v').to_string();
+            return Ok(v);
+        }
+    }
+
+    // Fallback: try the raw version file
     let response = client
         .get(SILK_VERSION_URL)
         .send()
         .await
-        .map_err(|e| format!("Failed to fetch latest version: {}", e))?;
-    
+        .map_err(|e| format!("Failed to fetch fallback latest version: {}", e))?;
+
     let version = response
         .text()
         .await
-        .map_err(|e| format!("Failed to read version: {}", e))?;
-    
+        .map_err(|e| format!("Failed to read fallback version: {}", e))?;
+
     Ok(version.trim().to_string())
 }
 
@@ -82,13 +105,45 @@ pub fn is_newer_version(version_a: &str, version_b: &str) -> bool {
 
 /// List available Silk versions (for version swapping)
 pub async fn list_available_versions() -> Result<Vec<String>, String> {
-    // For now, we'll return a hardcoded list of known stable versions
-    // In the future, this could scrape GitHub releases
-    Ok(vec![
-        "0.6.1".to_string(),
-        "0.6.0".to_string(),
-        "0.5.0".to_string(),
-    ])
+    let client = reqwest::Client::new();
+
+    let resp = client
+        .get(GITHUB_RELEASES_API)
+        .header("User-Agent", "entwine-app")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch releases from GitHub: {}", e))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("GitHub releases request failed: {}", resp.status()));
+    }
+
+    let json: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse releases JSON: {}", e))?;
+
+    let mut versions = Vec::new();
+
+    if let Some(arr) = json.as_array() {
+        for release in arr.iter() {
+            if let Some(tag) = release.get("tag_name").and_then(|t| t.as_str()) {
+                let v = tag.trim_start_matches('v').to_string();
+                versions.push(v);
+            }
+        }
+    }
+
+    // Sort and dedupe versions (descending semver)
+    versions.sort_by(|a, b| {
+        match (Version::parse(a), Version::parse(b)) {
+            (Ok(av), Ok(bv)) => bv.cmp(&av),
+            _ => b.cmp(a),
+        }
+    });
+    versions.dedup();
+
+    Ok(versions)
 }
 
 /// Download a specific Silk version
