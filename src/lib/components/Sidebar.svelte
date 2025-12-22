@@ -86,6 +86,7 @@
       <span class="status-dot"></span>
       <span>{silkInstalled ? 'Silk Installed' : 'Silk Not Installed'}</span>
     </div>
+    <div class="version-info">v0.2.0</div>
   </div>
 </aside>
 
@@ -178,6 +179,9 @@
     padding: 1rem 1.25rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   .status-indicator {
@@ -197,5 +201,11 @@
 
   .status-indicator.installed .status-dot {
     background: #22c55e;
+  }
+
+  .version-info {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-align: left;
   }
 </style>
