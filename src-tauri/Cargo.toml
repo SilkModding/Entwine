@@ -1,6 +1,6 @@
 [package]
 name = "entwine"
-version = "0.2.0"
+version = "0.3.0"
 description = "Silk Mod Manager for SpiderHeck"
 authors = ["abstractmelon"]
 edition = "2021"
