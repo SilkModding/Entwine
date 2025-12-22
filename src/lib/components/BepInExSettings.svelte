@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { isBepInExInstalled, getBepInExVersion, installBepInEx, uninstallBepInEx } from '$lib/api';
   import { listen } from '@tauri-apps/api/event';
+  import { confirm } from '@tauri-apps/plugin-dialog';
 
   export let gamePath: string;
 
@@ -12,16 +13,16 @@
   let processing = false;
   let progress = '';
 
-  onMount(async () => {
-    await checkInstallation();
+  onMount(() => {
+    checkInstallation();
 
     // Listen for install progress
-    const unlisten = await listen('install-progress', (event) => {
+    const unlistenPromise = listen('install-progress', (event) => {
       progress = event.payload as string;
     });
 
     return () => {
-      unlisten();
+      unlistenPromise.then(unlisten => unlisten());
     };
   });
 
@@ -41,7 +42,12 @@
   }
 
   async function handleInstall() {
-    if (!confirm('Install BepInEx? This will be configured to work alongside Silk.')) {
+    const confirmed = await confirm('Install BepInEx? This will be configured to work alongside Silk.', {
+      title: 'Install BepInEx',
+      kind: 'info'
+    });
+    
+    if (!confirmed) {
       return;
     }
 
@@ -52,6 +58,7 @@
     try {
       await installBepInEx(gamePath);
       await checkInstallation();
+      progress = '';
       alert('BepInEx installed successfully!');
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -62,7 +69,12 @@
   }
 
   async function handleUninstall() {
-    if (!confirm('Uninstall BepInEx? This will not affect your Silk installation.')) {
+    const confirmed = await confirm('Uninstall BepInEx? This will not affect your Silk installation.', {
+      title: 'Uninstall BepInEx',
+      kind: 'warning'
+    });
+    
+    if (!confirmed) {
       return;
     }
 
@@ -73,6 +85,7 @@
     try {
       await uninstallBepInEx(gamePath);
       await checkInstallation();
+      progress = '';
       alert('BepInEx uninstalled successfully!');
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);

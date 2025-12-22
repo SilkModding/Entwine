@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { InstalledMod } from '$lib/types';
   import { getModIconUrl } from '$lib/api';
+  import { confirm } from '@tauri-apps/plugin-dialog';
 
   interface Props {
     mod: InstalledMod;
@@ -12,6 +13,17 @@
   let { mod, onToggle, onUninstall, toggling }: Props = $props();
 
   const iconUrl = $derived(getModIconUrl(mod.iconPath));
+  
+  async function handleUninstall() {
+    const confirmed = await confirm(`Are you sure you want to uninstall ${mod.name}?`, {
+      title: 'Confirm Uninstall',
+      kind: 'warning'
+    });
+    
+    if (confirmed) {
+      onUninstall();
+    }
+  }
 </script>
 
 <div class="installed-mod-card" class:disabled={!mod.enabled}>
@@ -40,7 +52,7 @@
       <span class="toggle-slider"></span>
     </label>
 
-    <button class="btn-icon btn-delete" onclick={onUninstall} title="Uninstall mod">
+    <button class="btn-icon btn-delete" onclick={handleUninstall} title="Uninstall mod">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="3 6 5 6 21 6"></polyline>
         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>

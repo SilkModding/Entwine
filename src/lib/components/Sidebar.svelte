@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import type { Tab } from '$lib/types';
+  import { getAppVersion } from '$lib/api';
 
   interface Props {
     activeTab: Tab;
@@ -9,6 +11,12 @@
   }
 
   let { activeTab, silkInstalled, onTabChange, onLaunchGame }: Props = $props();
+  
+  let appVersion = $state('...');
+  
+  onMount(async () => {
+    appVersion = await getAppVersion();
+  });
 </script>
 
 <aside class="sidebar">
@@ -84,9 +92,9 @@
   <div class="sidebar-footer">
     <div class="status-indicator" class:installed={silkInstalled}>
       <span class="status-dot"></span>
-      <span>{silkInstalled ? 'Silk Installed' : 'Silk Not Installed'}</span>
+      <span class="status-text">{silkInstalled ? 'Silk Installed' : 'Silk Not Installed'}</span>
     </div>
-    <div class="version-info">v0.2.0</div>
+    <div class="version-info">v{appVersion}</div>
   </div>
 </aside>
 
@@ -97,7 +105,7 @@
     border-right: 1px solid rgba(255, 0, 100, 0.2);
     display: flex;
     flex-direction: column;
-    padding: 1rem 0;
+    padding: 1rem 0 0 0;
     backdrop-filter: blur(10px);
   }
 
@@ -176,27 +184,37 @@
   }
 
   .sidebar-footer {
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     margin-top: auto;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
     gap: 0.5rem;
   }
 
   .status-indicator {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.8rem;
+    gap: 0.4rem;
+    font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.6);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .status-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .status-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: #ef4444;
+    flex-shrink: 0;
   }
 
   .status-indicator.installed .status-dot {
@@ -204,8 +222,8 @@
   }
 
   .version-info {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: rgba(255, 255, 255, 0.4);
-    text-align: left;
+    flex-shrink: 0;
   }
 </style>

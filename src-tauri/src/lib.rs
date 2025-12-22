@@ -145,6 +145,11 @@ async fn get_app_status() -> Result<AppStatus, String> {
 }
 
 #[tauri::command]
+fn get_app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+#[tauri::command]
 async fn set_game_path(path: String) -> Result<AppStatus, String> {
     let game_path = PathBuf::from(&path);
     
@@ -616,6 +621,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             get_app_status,
+            get_app_version,
             set_game_path,
             fetch_mods,
             install_silk,

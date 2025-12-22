@@ -203,8 +203,6 @@
   async function handleUninstallMod(mod: InstalledMod) {
     if (!status?.modsPath) return;
 
-    if (!confirm(`Are you sure you want to uninstall ${mod.name}?`)) return;
-
     try {
       await uninstallMod(status.modsPath, mod.fileName);
       await loadInstalledMods();

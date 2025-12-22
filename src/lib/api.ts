@@ -7,6 +7,10 @@ export async function getAppStatus(): Promise<AppStatus> {
   return invoke('get_app_status');
 }
 
+export async function getAppVersion(): Promise<string> {
+  return invoke('get_app_version');
+}
+
 export async function setGamePath(path: string): Promise<AppStatus> {
   return invoke('set_game_path', { path });
 }
