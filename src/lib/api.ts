@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Mod, InstalledMod, AppStatus, ModConfig, ConfigValue, SilkVersion, ModVersionInfo, AppSettings } from './types';
+import type { Mod, InstalledMod, AppStatus, ModConfig, ConfigValue, SilkVersion, ModVersionInfo, AppSettings, ModConfigFile } from './types';
 
 const MODS_BASE_URL = 'https://silk.abstractmelon.net';
 
@@ -97,6 +97,28 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
 // Game Launch API
 export async function launchGame(gamePath: string): Promise<void> {
   return invoke('launch_game', { gamePath });
+}
+
+// Config API
+export async function listModConfigs(gamePath: string): Promise<ModConfigFile[]> {
+  return invoke('list_mod_configs', { gamePath });
+}
+
+export async function getModConfig(gamePath: string, modId: string): Promise<ModConfig> {
+  return invoke('get_mod_config', { gamePath, modId });
+}
+
+export async function setModConfigValue(
+  gamePath: string,
+  modId: string,
+  key: string,
+  value: ConfigValue
+): Promise<void> {
+  return invoke('set_mod_config_value', { gamePath, modId, key, value });
+}
+
+export async function resetModConfig(gamePath: string, modId: string): Promise<void> {
+  return invoke('reset_mod_config', { gamePath, modId });
 }
 
 export function getModIconUrl(iconPath: string): string {

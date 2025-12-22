@@ -23,6 +23,7 @@
   import SetupWizard from '$lib/components/SetupWizard.svelte';
   import VersionManager from '$lib/components/VersionManager.svelte';
   import BepInExSettings from '$lib/components/BepInExSettings.svelte';
+  import ConfigEditor from '$lib/components/ConfigEditor.svelte';
 
   let status = $state<AppStatus | null>(null);
   let mods = $state<Mod[]>([]);
@@ -265,6 +266,8 @@
               Browse Mods
             {:else if activeTab === 'installed'}
               Installed Mods
+            {:else if activeTab === 'config'}
+              Mod Config
             {:else}
               Settings
             {/if}
@@ -359,6 +362,8 @@
               {/each}
             </div>
           {/if}
+        {:else if activeTab === 'config'}
+          <ConfigEditor gamePath={status?.gamePath ?? null} />
         {:else if activeTab === 'settings'}
           <div class="settings-section">
             <h2>Game Installation</h2>

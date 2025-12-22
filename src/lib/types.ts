@@ -30,7 +30,7 @@ export interface AppStatus {
   modsPath: string | null;
 }
 
-export type Tab = 'browse' | 'installed' | 'settings';
+export type Tab = 'browse' | 'installed' | 'config' | 'settings';
 
 // Config types
 export type ConfigValue =
@@ -69,5 +69,22 @@ export interface Settings {
   autoUpdate: boolean;
   checkModCompatibility: boolean;
   bepinexInstalled: boolean;
+}
+
+// Config Editor types
+export interface ConfigField {
+  key: string;
+  value: ConfigValue;
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+}
+
+export interface ModConfigFile {
+  modId: string;
+  modName: string;
+  config: ModConfig;
+}
+
+export interface ConfigError {
+  message: string;
 }
 

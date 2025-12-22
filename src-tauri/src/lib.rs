@@ -7,6 +7,7 @@ use tauri::Emitter;
 mod version;
 mod bepinex;
 mod settings;
+mod config;
 
 const MODS_API_URL: &str = "https://silk.abstractmelon.net/api/mods";
 const MODS_BASE_URL: &str = "https://silk.abstractmelon.net";
@@ -579,6 +580,33 @@ async fn launch_game(game_path: String) -> Result<(), String> {
     settings::launch_game(&game_path, &settings.launch_method)
 }
 
+// Config Commands
+
+#[tauri::command]
+async fn list_mod_configs(game_path: String) -> Result<Vec<config::ModConfigFile>, String> {
+    config::list_mod_configs(&game_path)
+}
+
+#[tauri::command]
+async fn get_mod_config(game_path: String, mod_id: String) -> Result<std::collections::HashMap<String, serde_json::Value>, String> {
+    config::load_mod_config(&game_path, &mod_id)
+}
+
+#[tauri::command]
+async fn set_mod_config_value(
+    game_path: String,
+    mod_id: String,
+    key: String,
+    value: serde_json::Value,
+) -> Result<(), String> {
+    config::set_mod_config_value(&game_path, &mod_id, &key, value)
+}
+
+#[tauri::command]
+async fn reset_mod_config(game_path: String, mod_id: String) -> Result<(), String> {
+    config::reset_mod_config(&game_path, &mod_id)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -612,6 +640,11 @@ pub fn run() {
             get_settings,
             save_settings,
             launch_game,
+            // Config
+            list_mod_configs,
+            get_mod_config,
+            set_mod_config_value,
+            reset_mod_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
