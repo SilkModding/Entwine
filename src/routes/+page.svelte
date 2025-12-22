@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
   import { open } from '@tauri-apps/plugin-dialog';
-  import type { Mod, InstalledMod, AppStatus, Tab } from '$lib/types';
+  import type { Mod, InstalledMod, AppStatus, Tab, AppSettings } from '$lib/types';
   import {
     getAppStatus,
     setGamePath,
@@ -12,13 +12,15 @@
     getInstalledMods,
     installMod,
     toggleMod,
-    uninstallMod
+    uninstallMod,
+    getSettings,
+    saveSettings,
+    launchGame
   } from '$lib/api';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import ModCard from '$lib/components/ModCard.svelte';
   import InstalledModCard from '$lib/components/InstalledModCard.svelte';
   import SetupWizard from '$lib/components/SetupWizard.svelte';
-  import ModConfigEditor from '$lib/components/ModConfigEditor.svelte';
   import VersionManager from '$lib/components/VersionManager.svelte';
   import BepInExSettings from '$lib/components/BepInExSettings.svelte';
 
@@ -33,7 +35,7 @@
   let installingSilk = $state(false);
   let installingModId = $state<string | null>(null);
   let togglingModId = $state<string | null>(null);
-  let configEditingMod = $state<InstalledMod | null>(null);
+  let appSettings = $state<AppSettings>({ launchMethod: 'steam' });
 
   const filteredMods = $derived(
     mods.filter(mod =>
@@ -61,6 +63,7 @@
     (async () => {
       try {
         status = await getAppStatus();
+        appSettings = await getSettings();
         
         if (status.silkInstalled && status.modsPath) {
           await loadMods();
@@ -208,15 +211,23 @@
       error = e instanceof Error ? e.message : 'Failed to uninstall mod';
     }
   }
-
-  function handleOpenModConfig(mod: InstalledMod) {
-    configEditingMod = mod;
+  async function handleLaunchGame() {
+    if (!status?.gamePath) return;
+    
+    error = null;
+    try {
+      await launchGame(status.gamePath);
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Failed to launch game';
+    }
   }
 
-  function handleCloseModConfig() {
-    configEditingMod = null;
-    // Refresh installed mods in case config changes affect anything
-    loadInstalledMods();
+  async function handleSaveSettings() {
+    try {
+      await saveSettings(appSettings);
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Failed to save settings';
+    }
   }
 
   function handleTabChange(tab: Tab) {
@@ -230,6 +241,7 @@
     {activeTab} 
     silkInstalled={status?.silkInstalled ?? false}
     onTabChange={handleTabChange}
+    onLaunchGame={handleLaunchGame}
   />
 
   <div class="content">
@@ -342,7 +354,6 @@
                   {mod}
                   onToggle={(enable) => handleToggleMod(mod, enable)}
                   onUninstall={() => handleUninstallMod(mod)}
-                  onConfig={() => handleOpenModConfig(mod)}
                   toggling={togglingModId === mod.id}
                 />
               {/each}
@@ -365,6 +376,23 @@
               <div class="setting-info">
                 <h3>Mods Folder</h3>
                 <p class="setting-value">{status?.modsPath ?? 'Not available'}</p>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info">
+                <h3>Launch Method</h3>
+                <select
+                  class="setting-select"
+                  bind:value={appSettings.launchMethod}
+                  onchange={handleSaveSettings}
+                >
+                  <option value="steam">Steam (App ID 1329500)</option>
+                  <option value="executable">Direct Executable (SpiderHeckApp.exe)</option>
+                </select>
+                <p class="setting-description">
+                  Choose how the game should be launched when you click the "Launch Game" button.
+                </p>
               </div>
             </div>
 
@@ -411,14 +439,6 @@
       </div>
     {/if}
   </div>
-
-  {#if configEditingMod && status?.gamePath}
-    <ModConfigEditor
-      mod={configEditingMod}
-      gamePath={status.gamePath}
-      onClose={handleCloseModConfig}
-    />
-  {/if}
 </main>
 
 <style>
@@ -691,6 +711,33 @@
     font-size: 0.85rem;
     color: rgba(255, 255, 255, 0.5);
     word-break: break-all;
+  }
+
+  .setting-select {
+    width: 100%;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    color: #fff;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+  }
+
+  .setting-select:hover {
+    border-color: rgba(255, 0, 100, 0.5);
+  }
+
+  .setting-select:focus {
+    outline: none;
+    border-color: #ff0064;
+  }
+
+  .setting-description {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 0.5rem;
   }
 
   .about-content {

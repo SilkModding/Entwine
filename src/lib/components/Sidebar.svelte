@@ -5,9 +5,10 @@
     activeTab: Tab;
     silkInstalled: boolean;
     onTabChange: (tab: Tab) => void;
+    onLaunchGame: () => void;
   }
 
-  let { activeTab, silkInstalled, onTabChange }: Props = $props();
+  let { activeTab, silkInstalled, onTabChange, onLaunchGame }: Props = $props();
 </script>
 
 <aside class="sidebar">
@@ -16,6 +17,17 @@
   </div>
 
   <nav class="nav-menu">
+      <button
+      class="nav-item launch-button"
+      onclick={onLaunchGame}
+      disabled={!silkInstalled}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+      </svg>
+      <span>Launch Game</span>
+    </button>
+
     <button
       class="nav-item"
       class:active={activeTab === 'browse'}
@@ -136,6 +148,17 @@
   .nav-item:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .launch-button {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.2));
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    margin-top: 0.5rem;
+  }
+
+  .launch-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(22, 163, 74, 0.3));
+    border-color: rgba(34, 197, 94, 0.5);
   }
 
   .sidebar-footer {

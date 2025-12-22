@@ -4,9 +4,9 @@ use std::io;
 use std::path::PathBuf;
 use tauri::Emitter;
 
-mod config;
 mod version;
 mod bepinex;
+mod settings;
 
 const MODS_API_URL: &str = "https://silk.abstractmelon.net/api/mods";
 const MODS_BASE_URL: &str = "https://silk.abstractmelon.net";
@@ -497,44 +497,6 @@ async fn uninstall_silk(game_path: String, window: tauri::Window) -> Result<(), 
     Ok(())
 }
 
-// Config Management Commands
-
-#[tauri::command]
-async fn get_mod_config(game_path: String, mod_id: String) -> Result<std::collections::HashMap<String, config::ConfigValue>, String> {
-    config::load_mod_config(&game_path, &mod_id)
-}
-
-#[tauri::command]
-async fn save_mod_config(
-    game_path: String,
-    mod_id: String,
-    config_data: std::collections::HashMap<String, config::ConfigValue>,
-) -> Result<(), String> {
-    config::save_mod_config(&game_path, &mod_id, &config_data)
-}
-
-#[tauri::command]
-async fn set_mod_config_value(
-    game_path: String,
-    mod_id: String,
-    key: String,
-    value: config::ConfigValue,
-) -> Result<(), String> {
-    let mut config_data = config::load_mod_config(&game_path, &mod_id)?;
-    config::set_config_value(&mut config_data, &key, value);
-    config::save_mod_config(&game_path, &mod_id, &config_data)
-}
-
-#[tauri::command]
-async fn list_mod_configs(game_path: String) -> Result<Vec<String>, String> {
-    config::list_mod_configs(&game_path)
-}
-
-#[tauri::command]
-async fn delete_mod_config(game_path: String, mod_id: String) -> Result<(), String> {
-    config::delete_mod_config(&game_path, &mod_id)
-}
-
 // Version Management Commands
 
 #[tauri::command]
@@ -599,6 +561,24 @@ async fn uninstall_bepinex(game_path: String, window: tauri::Window) -> Result<(
     bepinex::uninstall_bepinex(&game_path, window).await
 }
 
+// Settings Commands
+
+#[tauri::command]
+async fn get_settings() -> Result<settings::AppSettings, String> {
+    settings::load_settings()
+}
+
+#[tauri::command]
+async fn save_settings(settings: settings::AppSettings) -> Result<(), String> {
+    settings::save_settings(&settings)
+}
+
+#[tauri::command]
+async fn launch_game(game_path: String) -> Result<(), String> {
+    let settings = settings::load_settings()?;
+    settings::launch_game(&game_path, &settings.launch_method)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -616,12 +596,6 @@ pub fn run() {
             install_mod,
             toggle_mod,
             uninstall_mod,
-            // Config management
-            get_mod_config,
-            save_mod_config,
-            set_mod_config_value,
-            list_mod_configs,
-            delete_mod_config,
             // Version management
             get_silk_version,
             get_latest_silk_version,
@@ -634,6 +608,10 @@ pub fn run() {
             get_bepinex_version,
             install_bepinex,
             uninstall_bepinex,
+            // Settings
+            get_settings,
+            save_settings,
+            launch_game,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

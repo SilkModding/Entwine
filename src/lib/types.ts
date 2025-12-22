@@ -59,6 +59,12 @@ export interface ModVersionInfo {
 }
 
 // Settings types
+export type LaunchMethod = 'steam' | 'executable';
+
+export interface AppSettings {
+  launchMethod: LaunchMethod;
+}
+
 export interface Settings {
   autoUpdate: boolean;
   checkModCompatibility: boolean;

@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Mod, InstalledMod, AppStatus, ModConfig, ConfigValue, SilkVersion, ModVersionInfo } from './types';
+import type { Mod, InstalledMod, AppStatus, ModConfig, ConfigValue, SilkVersion, ModVersionInfo, AppSettings } from './types';
 
 const MODS_BASE_URL = 'https://silk.abstractmelon.net';
 
@@ -37,32 +37,6 @@ export async function toggleMod(modsPath: string, fileName: string, enable: bool
 
 export async function uninstallMod(modsPath: string, fileName: string): Promise<void> {
   return invoke('uninstall_mod', { modsPath, fileName });
-}
-
-// Config Management API
-export async function getModConfig(gamePath: string, modId: string): Promise<ModConfig> {
-  return invoke('get_mod_config', { game_path: gamePath, mod_id: modId });
-}
-
-export async function saveModConfig(gamePath: string, modId: string, configData: ModConfig): Promise<void> {
-  return invoke('save_mod_config', { game_path: gamePath, mod_id: modId, config_data: configData });
-}
-
-export async function setModConfigValue(
-  gamePath: string,
-  modId: string,
-  key: string,
-  value: ConfigValue
-): Promise<void> {
-  return invoke('set_mod_config_value', { game_path: gamePath, mod_id: modId, key, value });
-}
-
-export async function listModConfigs(gamePath: string): Promise<string[]> {
-  return invoke('list_mod_configs', { game_path: gamePath });
-}
-
-export async function deleteModConfig(gamePath: string, modId: string): Promise<void> {
-  return invoke('delete_mod_config', { game_path: gamePath, mod_id: modId });
 }
 
 // Version Management API
@@ -109,6 +83,20 @@ export async function installBepInEx(gamePath: string): Promise<void> {
 
 export async function uninstallBepInEx(gamePath: string): Promise<void> {
   return invoke('uninstall_bepinex', { gamePath });
+}
+
+// Settings API
+export async function getSettings(): Promise<AppSettings> {
+  return invoke('get_settings');
+}
+
+export async function saveSettings(settings: AppSettings): Promise<void> {
+  return invoke('save_settings', { settings });
+}
+
+// Game Launch API
+export async function launchGame(gamePath: string): Promise<void> {
+  return invoke('launch_game', { gamePath });
 }
 
 export function getModIconUrl(iconPath: string): string {
