@@ -15,7 +15,8 @@
     uninstallMod,
     getSettings,
     saveSettings,
-    launchGame
+    launchGame,
+    getLogPath
   } from '$lib/api';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import ModCard from '$lib/components/ModCard.svelte';
@@ -37,6 +38,7 @@
   let installingModId = $state<string | null>(null);
   let togglingModId = $state<string | null>(null);
   let appSettings = $state<AppSettings>({ launchMethod: 'steam' });
+  let logPath = $state<string>('');
 
   const filteredMods = $derived(
     mods.filter(mod =>
@@ -65,6 +67,7 @@
       try {
         status = await getAppStatus();
         appSettings = await getSettings();
+        getLogPath().then(p => { logPath = p; }).catch(() => {});
         
         if (status.silkInstalled && status.modsPath) {
           await loadMods();
@@ -304,13 +307,6 @@
         </div>
       {/if}
 
-      {#if installProgress}
-        <div class="progress-banner">
-          <div class="spinner-small"></div>
-          <span>{installProgress}</span>
-        </div>
-      {/if}
-
       <div class="content-body">
         {#if activeTab === 'browse'}
           {#if filteredMods.length === 0}
@@ -384,6 +380,13 @@
 
             <div class="setting-item">
               <div class="setting-info">
+                <h3>Log File</h3>
+                <p class="setting-value">{logPath ? logPath + '/entwine.log' : 'Not available'}</p>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info">
                 <h3>Launch Method</h3>
                 <select
                   class="setting-select"
@@ -443,6 +446,13 @@
     {/if}
   </div>
 </main>
+
+{#if installProgress}
+  <div class="progress-banner">
+    <div class="spinner-small"></div>
+    <span>{installProgress}</span>
+  </div>
+{/if}
 
 <style>
   :global(*) {
@@ -582,14 +592,22 @@
   }
 
   .progress-banner {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    z-index: 9999;
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    background: rgba(255, 0, 100, 0.1);
-    border-bottom: 1px solid rgba(255, 0, 100, 0.3);
+    padding: 0.65rem 1rem;
+    background: rgba(20, 10, 35, 0.95);
+    border: 1px solid rgba(255, 0, 100, 0.45);
+    border-radius: 0.5rem;
     color: #ff0064;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    pointer-events: none;
   }
 
   .content-body {

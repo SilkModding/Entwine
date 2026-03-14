@@ -21,6 +21,8 @@
     "fs:allow-remove",
     "fs:allow-rename",
     "fs:allow-copy-file",
+    "log:default",
+    "log:allow-log",
     {
       "identifier": "http:default",
       "allow": [

@@ -1,8 +1,9 @@
+use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
 use std::path::PathBuf;
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 
 mod version;
 mod bepinex;
@@ -127,16 +128,22 @@ fn find_spiderheck_path() -> Option<PathBuf> {
 #[tauri::command]
 async fn get_app_status() -> Result<AppStatus, String> {
     let game_path = find_spiderheck_path();
-    
+
     let silk_installed = game_path
         .as_ref()
         .map(|p| p.join("winhttp.dll").exists() || p.join("Silk").exists())
         .unwrap_or(false);
-    
+
     let mods_path = game_path.as_ref().map(|p| {
         p.join("Silk/Mods").to_string_lossy().to_string()
     });
-    
+
+    info!(
+        "App status: silk_installed={}, game_path={:?}",
+        silk_installed,
+        game_path.as_ref().map(|p| p.display().to_string())
+    );
+
     Ok(AppStatus {
         silk_installed,
         game_path: game_path.map(|p| p.to_string_lossy().to_string()),
@@ -151,18 +158,21 @@ fn get_app_version() -> String {
 
 #[tauri::command]
 async fn set_game_path(path: String) -> Result<AppStatus, String> {
+    info!("Setting game path to: {}", path);
     let game_path = PathBuf::from(&path);
-    
+
     if !game_path.exists() {
+        warn!("Game path does not exist: {}", path);
         return Err("Path does not exist".to_string());
     }
-    
+
     // Check if this looks like a SpiderHeck installation
-    let has_exe = game_path.join("SpiderHeck.exe").exists() 
+    let has_exe = game_path.join("SpiderHeck.exe").exists()
         || game_path.join("SpiderHeck.x86_64").exists()
         || game_path.join("SpiderHeck").exists();
-    
+
     if !has_exe {
+        warn!("Path does not contain SpiderHeck executable: {}", path);
         return Err("This doesn't appear to be a SpiderHeck installation".to_string());
     }
     
@@ -179,27 +189,37 @@ async fn set_game_path(path: String) -> Result<AppStatus, String> {
 
 #[tauri::command]
 async fn fetch_mods() -> Result<Vec<Mod>, String> {
+    info!("Fetching mod list from {}", MODS_API_URL);
     let client = reqwest::Client::new();
-    
+
     let response = client
         .get(MODS_API_URL)
         .send()
         .await
-        .map_err(|e| format!("Failed to fetch mods: {}", e))?;
-    
+        .map_err(|e| {
+            error!("Failed to fetch mods: {}", e);
+            format!("Failed to fetch mods: {}", e)
+        })?;
+
     let mods: Vec<Mod> = response
         .json()
         .await
-        .map_err(|e| format!("Failed to parse mods: {}", e))?;
-    
+        .map_err(|e| {
+            error!("Failed to parse mods JSON: {}", e);
+            format!("Failed to parse mods: {}", e)
+        })?;
+
+    info!("Fetched {} mods", mods.len());
     Ok(mods)
 }
 
 #[tauri::command]
 async fn install_silk(game_path: String, window: tauri::Window) -> Result<(), String> {
+    info!("Installing Silk to: {}", game_path);
     let game_dir = PathBuf::from(&game_path);
 
     if !game_dir.exists() {
+        error!("Game path does not exist: {}", game_path);
         return Err("Game path does not exist".to_string());
     }
 
@@ -291,12 +311,13 @@ async fn install_mod(
     mods_path: String,
     window: tauri::Window,
 ) -> Result<(), String> {
+    info!("Installing mod '{}' (v{}) to {}", mod_info.name, mod_info.version, mods_path);
     let mods_dir = PathBuf::from(&mods_path);
-    
+
     // Create mods directory if it doesn't exist
     fs::create_dir_all(&mods_dir)
         .map_err(|e| format!("Failed to create mods directory: {}", e))?;
-    
+
     let _ = window.emit("install-progress", format!("Downloading {}...", mod_info.name));
     
     // Download the mod
@@ -362,8 +383,9 @@ async fn install_mod(
     // Save metadata
     save_mod_metadata(&mods_dir, &mod_info)?;
     
+    info!("Mod '{}' installed successfully", mod_info.name);
     let _ = window.emit("install-progress", format!("{} installed successfully!", mod_info.name));
-    
+
     Ok(())
 }
 
@@ -405,10 +427,12 @@ fn save_mod_metadata(mods_dir: &PathBuf, mod_info: &Mod) -> Result<(), String> {
 
 #[tauri::command]
 async fn toggle_mod(mods_path: String, file_name: String, enable: bool) -> Result<(), String> {
+    info!("Toggling mod '{}': enable={}", file_name, enable);
     let mods_dir = PathBuf::from(&mods_path);
     let current_path = mods_dir.join(&file_name);
-    
+
     if !current_path.exists() {
+        warn!("Mod file not found: {}", file_name);
         return Err("Mod file not found".to_string());
     }
     
@@ -450,10 +474,12 @@ async fn toggle_mod(mods_path: String, file_name: String, enable: bool) -> Resul
 
 #[tauri::command]
 async fn uninstall_mod(mods_path: String, file_name: String) -> Result<(), String> {
+    info!("Uninstalling mod: {}", file_name);
     let mods_dir = PathBuf::from(&mods_path);
     let mod_path = mods_dir.join(&file_name);
-    
+
     if !mod_path.exists() {
+        warn!("Mod file not found for uninstall: {}", file_name);
         return Err("Mod file not found".to_string());
     }
     
@@ -470,9 +496,11 @@ async fn uninstall_mod(mods_path: String, file_name: String) -> Result<(), Strin
 
 #[tauri::command]
 async fn uninstall_silk(game_path: String, window: tauri::Window) -> Result<(), String> {
+    info!("Uninstalling Silk from: {}", game_path);
     let game_dir = PathBuf::from(&game_path);
 
     if !game_dir.exists() {
+        error!("Game path does not exist: {}", game_path);
         return Err("Game path does not exist".to_string());
     }
 
@@ -498,9 +526,34 @@ async fn uninstall_silk(game_path: String, window: tauri::Window) -> Result<(), 
         return Err("Silk not found at this path".to_string());
     }
 
+    info!("Silk uninstalled successfully");
     let _ = window.emit("install-progress", "Silk uninstalled successfully!");
 
     Ok(())
+}
+
+// Log Commands
+
+#[tauri::command]
+async fn get_log_path(app: tauri::AppHandle) -> Result<String, String> {
+    let log_dir = app
+        .path()
+        .app_log_dir()
+        .map_err(|e| format!("Failed to get log directory: {}", e))?;
+    Ok(log_dir.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+async fn read_log_file(app: tauri::AppHandle) -> Result<String, String> {
+    let log_dir = app
+        .path()
+        .app_log_dir()
+        .map_err(|e| format!("Failed to get log directory: {}", e))?;
+    let log_file = log_dir.join("entwine.log");
+    if !log_file.exists() {
+        return Ok(String::new());
+    }
+    fs::read_to_string(&log_file).map_err(|e| format!("Failed to read log file: {}", e))
 }
 
 // Version Management Commands
@@ -615,6 +668,11 @@ async fn reset_mod_config(game_path: String, mod_id: String) -> Result<(), Strin
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::default()
+                .level(log::LevelFilter::Info)
+                .build(),
+        )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
@@ -651,6 +709,9 @@ pub fn run() {
             get_mod_config,
             set_mod_config_value,
             reset_mod_config,
+            // Logs
+            get_log_path,
+            read_log_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

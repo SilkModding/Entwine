@@ -125,6 +125,15 @@ export async function resetModConfig(gamePath: string, modId: string): Promise<v
   return invoke('reset_mod_config', { gamePath, modId });
 }
 
+// Logging API
+export async function getLogPath(): Promise<string> {
+  return invoke('get_log_path');
+}
+
+export async function readLogFile(): Promise<string> {
+  return invoke('read_log_file');
+}
+
 export function getModIconUrl(iconPath: string): string {
   if (!iconPath) return '/default-mod.png';
   if (iconPath.startsWith('http')) return iconPath;

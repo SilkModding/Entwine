@@ -30,7 +30,7 @@ export interface AppStatus {
   modsPath: string | null;
 }
 
-export type Tab = 'browse' | 'installed' | 'config' | 'settings';
+export type Tab = 'browse' | 'installed' | 'config' | 'settings' | 'logs';
 
 // Config types
 export type ConfigValue =
