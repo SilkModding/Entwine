@@ -90,6 +90,15 @@ fn get_steam_library_paths() -> Vec<PathBuf> {
                 }
             }
         }
+
+        // Check mount points in /mnt as well
+        for entry in fs::read_dir("/mnt").into_iter().flatten() {
+            if let Ok(drive) = entry {
+                paths.push(drive.path().join("SteamLibrary/steamapps/common"));
+                paths.push(drive.path().join("steamapps/common"));
+            }
+        }
+
     }
     
     #[cfg(target_os = "windows")]
@@ -123,6 +132,20 @@ fn find_spiderheck_path() -> Option<PathBuf> {
         }
     }
     None
+}
+
+fn is_spiderheck_installation(game_path: &PathBuf) -> bool {
+    let has_known_executable = [
+        "SpiderHeckApp.exe",
+        "SpiderHeckApp",
+    ]
+        .iter()
+        .any(|executable| game_path.join(executable).exists());
+ 
+    let has_proton_layout = game_path.join("SpiderHeckApp_Data").is_dir()
+        && game_path.join("UnityPlayer.dll").exists();
+
+    has_known_executable || has_proton_layout
 }
 
 #[tauri::command]
@@ -166,14 +189,12 @@ async fn set_game_path(path: String) -> Result<AppStatus, String> {
         return Err("Path does not exist".to_string());
     }
 
-    // Check if this looks like a SpiderHeck installation
-    let has_exe = game_path.join("SpiderHeck.exe").exists()
-        || game_path.join("SpiderHeck.x86_64").exists()
-        || game_path.join("SpiderHeck").exists();
-
-    if !has_exe {
+    if !is_spiderheck_installation(&game_path) {
         warn!("Path does not contain SpiderHeck executable: {}", path);
-        return Err("This doesn't appear to be a SpiderHeck installation".to_string());
+        return Err(
+            "This does not appear to be a SpiderHeck installation. Select the folder containing SpiderHeck.exe, SpiderHeck.x86_64, or SpiderHeckApp.exe."
+                .to_string(),
+        );
     }
     
     let silk_installed = game_path.join("winhttp.dll").exists() || game_path.join("Silk").exists();

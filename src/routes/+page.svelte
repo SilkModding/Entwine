@@ -42,6 +42,16 @@
 
   const installedModIds = $derived(new Set(installedMods.map(m => m.id)));
 
+  function getErrorMessage(e: unknown, fallback: string): string {
+    if (e instanceof Error && e.message) return e.message;
+    if (typeof e === 'string' && e.trim().length > 0) return e;
+    if (typeof e === 'object' && e !== null && 'message' in e) {
+      const msg = (e as { message?: unknown }).message;
+      if (typeof msg === 'string' && msg.trim().length > 0) return msg;
+    }
+    return fallback;
+  }
+
   onMount(() => {
     let unlistenFn: (() => void) | undefined;
     listen<string>('install-progress', (event) => {
@@ -85,13 +95,14 @@
       const selected = await open({ directory: true, multiple: false, title: 'Select SpiderHeck Installation Folder' });
       if (selected) {
         status = await setGamePath(selected as string);
+        error = null;
         if (status.silkInstalled && status.modsPath) {
           await loadMods();
           await loadInstalledMods();
           activeTab = 'browse';
         }
       }
-    } catch (e) { error = e instanceof Error ? e.message : 'Failed to set game path'; }
+    } catch (e) { error = getErrorMessage(e, 'Failed to set game path'); }
   }
 
   async function handleInstallSilk() {
@@ -102,7 +113,7 @@
       await installSilk(status.gamePath);
       status = await getAppStatus();
       if (status.silkInstalled) { await loadMods(); await loadInstalledMods(); activeTab = 'browse'; }
-    } catch (e) { error = e instanceof Error ? e.message : 'Failed to install Silk'; }
+    } catch (e) { error = getErrorMessage(e, 'Failed to install Silk'); }
     finally { installingSilk = false; installProgress = null; }
   }
 
@@ -115,7 +126,7 @@
       await uninstallSilk(status.gamePath);
       status = await getAppStatus();
       if (!status.silkInstalled) { installedMods = []; activeTab = 'settings'; }
-    } catch (e) { error = e instanceof Error ? e.message : 'Failed to uninstall Silk'; }
+    } catch (e) { error = getErrorMessage(e, 'Failed to uninstall Silk'); }
     finally { installingSilk = false; installProgress = null; }
   }
 
@@ -124,7 +135,7 @@
     installingModId = mod.id;
     error = null;
     try { await installMod(mod, status.modsPath); await loadInstalledMods(); }
-    catch (e) { error = e instanceof Error ? e.message : 'Failed to install mod'; }
+    catch (e) { error = getErrorMessage(e, 'Failed to install mod'); }
     finally { installingModId = null; installProgress = null; }
   }
 
@@ -132,26 +143,26 @@
     if (!status?.modsPath) return;
     togglingModId = mod.id;
     try { await toggleMod(status.modsPath, mod.fileName, enable); await loadInstalledMods(); }
-    catch (e) { error = e instanceof Error ? e.message : 'Failed to toggle mod'; }
+    catch (e) { error = getErrorMessage(e, 'Failed to toggle mod'); }
     finally { togglingModId = null; }
   }
 
   async function handleUninstallMod(mod: InstalledMod) {
     if (!status?.modsPath) return;
     try { await uninstallMod(status.modsPath, mod.fileName); await loadInstalledMods(); }
-    catch (e) { error = e instanceof Error ? e.message : 'Failed to uninstall mod'; }
+    catch (e) { error = getErrorMessage(e, 'Failed to uninstall mod'); }
   }
 
   async function handleLaunchGame() {
     if (!status?.gamePath) return;
     error = null;
     try { await launchGame(status.gamePath); }
-    catch (e) { error = e instanceof Error ? e.message : 'Failed to launch game'; }
+    catch (e) { error = getErrorMessage(e, 'Failed to launch game'); }
   }
 
   async function handleSaveSettings() {
     try { await saveSettings(appSettings); }
-    catch (e) { error = e instanceof Error ? e.message : 'Failed to save settings'; }
+    catch (e) { error = getErrorMessage(e, 'Failed to save settings'); }
   }
 
   function handleTabChange(tab: Tab) { activeTab = tab; error = null; }
@@ -166,6 +177,10 @@
   />
 
   <main class="content">
+    {#if error}
+      <ErrorBanner message={error} onDismiss={() => (error = null)} />
+    {/if}
+
     {#if loading}
       <div class="loading-state">
         <div class="spinner-large"></div>
@@ -179,10 +194,6 @@
         installing={installingSilk}
       />
     {:else}
-      {#if error}
-        <ErrorBanner message={error} onDismiss={() => (error = null)} />
-      {/if}
-
       {#if activeTab === 'browse'}
         <BrowsePage
           {mods}
